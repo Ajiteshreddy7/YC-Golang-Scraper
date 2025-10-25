@@ -21,11 +21,11 @@
 
 - [Features](#features)- Automated daily scraping via GitHub Actions
 
-- [Live Demo](#live-demo)- 100% free hosting (no credit card required)
+- [Live Demo](#live-demo)- 100% free hosting 
 
 - [Quick Start](#quick-start)
 
-- [Installation](#installation)## Live Dashboard
+- [Installation](#installation)
 
 - [Configuration](#configuration)
 
@@ -33,7 +33,7 @@
 
 - [Architecture](#architecture)
 
-- [GitHub Pages Deployment](#github-pages-deployment)Updates automatically every day at 3 AM UTC.
+- [GitHub Pages Deployment](#github-pages-deployment) Updates automatically every day at 3 AM UTC.
 
 # YC Job Scraper
 
@@ -48,10 +48,6 @@ Lightweight job aggregator for YC companies. Scrapes early‑career roles (inter
 - Save to SQLite and export CSV
 - Generate a static dashboard with search, filters, and “Mark Applied”
 
-## Run locally (Windows PowerShell)
-
-```powershell
-```
 ## 🏗️ Architecture
 
 ### System Overview
@@ -160,25 +156,6 @@ YC-Golang-Scraper/
 - docs/deployment.md – GitHub Pages + workflow
 - docs/configuration.md – config file and env vars
 
-## License
-
-MIT
-
-Open an issue with:
-- Clear description of the bug
-- Steps to reproduce
-- Expected vs actual behavior
-- System info (OS, Go version)
-
-### Pull Requests
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`go test ./...`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
 
 ## 🐛 Troubleshooting
 
