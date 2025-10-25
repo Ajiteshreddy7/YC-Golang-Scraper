@@ -1,0 +1,56 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+go-scraper/scraper
+go-scraper/dashboard
+go-scraper/static-site
+go-scraper/scraper.exe
+go-scraper/dashboard.exe
+go-scraper/static-site.exe
+
+# Data files (CSV contains scraped data)
+data/*.csv
+data/*.html
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Generated static site (created by GitHub Actions)
+public/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (if you add a .env file later)
+.env
+.env.local
+
+# Python artifacts (legacy)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+
+# Database data (local only)
+pgdata/
+*.db
+*.sqlite
