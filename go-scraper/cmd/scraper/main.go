@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -56,12 +55,13 @@ func main() {
 		logger.Fatal("unmarshal config: %v", err)
 	}
 
+	total := 0
+
 	// Process Greenhouse if configured
 	if companies, ok := cfg.TargetPlatforms["greenhouse"]; ok {
 		logger.Info("Found %d greenhouse companies to scrape", len(companies))
-		total := 0
 		for i, c := range companies {
-			logger.Info("[%d/%d] scraping %s", i+1, len(companies), c)
+			logger.Info("[%d/%d] scraping %s (Greenhouse)", i+1, len(companies), c)
 			jobs, err := scraper.ScrapeGreenhouse(c)
 			if err != nil {
 				logger.Warn("error scraping %s: %v", c, err)
@@ -78,9 +78,34 @@ func main() {
 			time.Sleep(2 * time.Second)
 		}
 		logger.Info("Processed %d greenhouse jobs", total)
-	} else {
-		fmt.Println("No greenhouse companies configured in config/scraper_config.json -> target_platforms.greenhouse")
 	}
+
+	// Process Lever if configured
+	if companies, ok := cfg.TargetPlatforms["lever"]; ok {
+		logger.Info("Found %d lever companies to scrape", len(companies))
+		leverTotal := 0
+		for i, c := range companies {
+			logger.Info("[%d/%d] scraping %s (Lever)", i+1, len(companies), c)
+			jobs, err := scraper.ScrapeLever(c)
+			if err != nil {
+				logger.Warn("error scraping %s: %v", c, err)
+				continue
+			}
+			for _, job := range jobs {
+				if err := d.InsertJobTyped(job.Title, job.Company, job.Location, job.Type, job.URL); err != nil {
+					logger.Error("insert job error: %v", err)
+				} else {
+					leverTotal++
+					total++
+				}
+			}
+			// be respectful
+			time.Sleep(2 * time.Second)
+		}
+		logger.Info("Processed %d lever jobs", leverTotal)
+	}
+	
+	logger.Info("Processed %d total jobs", total)
 
 	// Export CSV
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0755); err != nil {
