@@ -58,35 +58,152 @@ func AuthRequired(next http.HandlerFunc) http.HandlerFunc {
 
 // -------------------- AUTHENTICATION TEMPLATES --------------------
 
-var loginHTML = `<!DOCTYPE html>
-<html>
-<head><title>Login</title><style>body {font-family:sans-serif; margin:50px;} h2 {color:#333;}</style></head>
+var loginHTML = `<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Go Scrape — Jobs at One sight</title>
+	<style>
+		:root{--bg:#f4f6f8;--card:#fff;--accent:#0b66c3;--muted:#6b7280}
+		html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+		body{background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:32px}
+		.container{max-width:420px;width:100%}
+		.card{background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08);padding:32px}
+		.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+		.logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#2aa6ff);display:inline-block}
+		h1{margin:0;font-size:20px;color:#0f172a}
+		p.lead{margin:6px 0 18px;color:var(--muted);font-size:13px}
+		label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
+		input[type=text],input[type=password]{width:100%;padding:12px 14px;border:1px solid #e6e9ee;border-radius:8px;margin-bottom:12px;font-size:14px}
+		.actions{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+		button.primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
+		a.link{color:var(--accent);text-decoration:none;font-weight:600}
+		.footer{margin-top:14px;font-size:13px;color:var(--muted);text-align:center}
+		/* toast */
+		.toast{position:fixed;right:20px;top:20px;background:#fff;border-left:4px solid #f87171;padding:12px 16px;border-radius:6px;box-shadow:0 6px 24px rgba(2,6,23,0.08);display:none}
+		.toast.show{display:block}
+	</style>
+</head>
 <body>
-<h2>Login</h2>
-<form method="POST" action="/login">
-  <label>Username:</label><br/>
-  <input type="text" name="username" required/><br/><br/>
-  <label>Password:</label><br/>
-  <input type="password" name="password" required/><br/><br/>
-  <button type="submit">Login</button>
-</form>
-<p>No account? <a href="/register">Register here</a></p>
+	<div class="container">
+		<div class="card">
+			<div class="brand">
+				<span class="logo" aria-hidden="true"></span>
+				<div>
+					<h1>Go Scrape</h1>
+					<div class="lead">Jobs at One sight — Sign in to manage your job applications</div>
+				</div>
+			</div>
+
+			<form method="POST" action="/login" id="loginForm">
+				<label for="username">Email or username</label>
+				<input id="username" name="username" type="text" autocomplete="username" required />
+
+				<label for="password">Password</label>
+				<input id="password" name="password" type="password" autocomplete="current-password" required />
+
+				<div class="actions">
+					<div><label style="font-size:13px;color:var(--muted)"><input type="checkbox" name="remember" /> Remember me</label></div>
+				</div>
+
+				<div style="margin-top:18px;display:flex;gap:8px">
+					<button class="primary" type="submit">Sign in</button>
+					<a class="link" href="/register" style="align-self:center">Create account</a>
+				</div>
+			</form>
+
+			<div class="footer">By signing in you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+		</div>
+	</div>
+
+	<div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+	<script>
+		(function(){
+			// Show toast if server rendered an error
+			var toast = document.getElementById('toast');
+			var err = '{{.Error}}';
+			if(err && err !== ''){
+				toast.textContent = err;
+				toast.className = 'toast show';
+				setTimeout(function(){ toast.className = 'toast'; }, 4500);
+			}
+		})();
+	</script>
 </body>
 </html>`
 
-var registerHTML = `<!DOCTYPE html>
-<html>
-<head><title>Register</title><style>body {font-family:sans-serif; margin:50px;} h2 {color:#333;}</style></head>
+var registerHTML = `<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Create account — Go Scrape</title>
+	<style>
+		:root{--bg:#f4f6f8;--card:#fff;--accent:#0b66c3;--muted:#6b7280}
+		html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+		body{background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:32px}
+		.container{max-width:460px;width:100%}
+		.card{background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08);padding:28px}
+		.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+		.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#2aa6ff);display:inline-block}
+		h1{margin:0;font-size:20px;color:#0f172a}
+		p.lead{margin:6px 0 18px;color:var(--muted);font-size:13px}
+		label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
+		input[type=text],input[type=password]{width:100%;padding:12px 14px;border:1px solid #e6e9ee;border-radius:8px;margin-bottom:12px;font-size:14px}
+		.actions{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+		button.primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
+		a.link{color:var(--accent);text-decoration:none;font-weight:600}
+		.footer{margin-top:14px;font-size:13px;color:var(--muted);text-align:center}
+		.toast{position:fixed;right:20px;top:20px;background:#fff;border-left:4px solid #f87171;padding:12px 16px;border-radius:6px;box-shadow:0 6px 24px rgba(2,6,23,0.08);display:none}
+		.toast.show{display:block}
+	</style>
+</head>
 <body>
-<h2>Register</h2>
-<form method="POST" action="/register">
-  <label>Username:</label><br/>
-  <input type="text" name="username" required/><br/><br/>
-  <label>Password:</label><br/>
-  <input type="password" name="password" required/><br/><br/>
-  <button type="submit">Create Account</button>
-</form>
-<p>Already have an account? <a href="/login">Login here</a></p>
+	<div class="container">
+		<div class="card">
+			<div class="brand">
+				<span class="logo" aria-hidden="true"></span>
+				<div>
+					<h1>Create your Go Scrape account</h1>
+					<div class="lead">Jobs at One sight — sign up to track applications</div>
+				</div>
+			</div>
+
+			<form method="POST" action="/register" id="registerForm">
+				<label for="username">Username</label>
+				<input id="username" name="username" type="text" autocomplete="username" required />
+
+				<label for="password">Password</label>
+				<input id="password" name="password" type="password" autocomplete="new-password" required />
+
+				<label for="confirm">Confirm Password</label>
+				<input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
+
+				<div style="margin-top:18px;display:flex;gap:8px">
+					<button class="primary" type="submit">Create account</button>
+					<a class="link" href="/login" style="align-self:center">Sign in</a>
+				</div>
+			</form>
+
+			<div class="footer">By creating an account you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+		</div>
+	</div>
+
+	<div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+	<script>
+		(function(){
+			var toast = document.getElementById('toast');
+			var err = '{{.Error}}';
+			if(err && err !== ''){
+				toast.textContent = err;
+				toast.className = 'toast show';
+				setTimeout(function(){ toast.className = 'toast'; }, 4500);
+			}
+		})();
+	</script>
 </body>
 </html>`
 
@@ -96,7 +213,7 @@ const dashboardHTML = `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Job Application Dashboard</title>
+	<title>Your Applications</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -168,11 +285,9 @@ const dashboardHTML = `
 </head>
 <body>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-        <h1 style="margin:0; color: #343a40;">🚀 Job Dashboard</h1>
+        <h1 style="margin:0; color: #343a40;">Your Applications</h1>
         <div style="font-size: 0.95em; color: #6c757d;">Logged in as <strong>{{.User}}</strong> — <a href="/filters" style="color: #007bff;">Filters</a> | <a href="/logout" style="color: #dc3545;">Logout</a></div>
-    </div>
-    
-    <div class="stats">
+    </div>    <div class="stats">
         <div class="stat-card">
             <div class="stat-number">{{.TotalJobs}}</div>
             <div class="stat-label">Total Jobs</div>
@@ -206,7 +321,7 @@ const dashboardHTML = `
                 <td>{{.Title}}</td>
                 <td>{{.Location}}</td>
                 <td><span class="status-{{.Status | lower}}">{{.Status}}</span></td>
-                <td><a href="{{.URL}}" target="_blank">Apply</a></td>
+                <td><a href="{{.URL}}" target="_blank">Open</a></td>
             </tr>
             {{end}}
         </tbody>
@@ -276,9 +391,9 @@ const landingHTML = `
 				{{end}}
 			 </select>
 			 <select name="status">
-				<option value="">All Statuses</option>
-				<option value="Not Applied">Not Applied</option>
+				<option value="Not Applied" selected>Not Applied</option>
 				<option value="Applied">Applied</option>
+				<option value="">All Statuses</option>
 			 </select>
 			 <button type="submit">Show Jobs</button>
 		  </div>
@@ -448,55 +563,86 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 // loginHandler handles GET (show form) and POST (process login)
 func loginHandler(w http.ResponseWriter, r *http.Request) {
+	// Use a small template to render the login page with an optional error message
+	tmpl := template.Must(template.New("login").Parse(loginHTML))
 	switch r.Method {
 	case http.MethodGet:
-		fmt.Fprint(w, loginHTML)
+		// Render with no error
+		_ = tmpl.Execute(w, map[string]string{"Error": ""})
+		return
 	case http.MethodPost:
 		username := strings.TrimSpace(r.FormValue("username"))
 		password := strings.TrimSpace(r.FormValue("password"))
 		d, err := db.Connect()
 		if err != nil {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
+			logger.Error("db connect: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Internal server error"})
 			return
 		}
 		defer d.Close()
 		valid, err := d.AuthenticateUser(username, password)
 		if err != nil {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
+			logger.Error("auth check: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Internal server error"})
 			return
 		}
 		if !valid {
-			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+			// Render the login page with a toast-style error (no redirect)
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Invalid username or password"})
 			return
 		}
 		session, _ := store.Get(r, "session")
 		session.Values["user"] = username
 		session.Save(r, w)
 		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		return
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
 // registerHandler handles GET (show form) and POST (process registration)
 func registerHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.New("register").Parse(registerHTML))
 	switch r.Method {
 	case http.MethodGet:
-		fmt.Fprint(w, registerHTML)
+		_ = tmpl.Execute(w, map[string]string{"Error": ""})
 	case http.MethodPost:
 		username := strings.TrimSpace(r.FormValue("username"))
 		password := strings.TrimSpace(r.FormValue("password"))
+		confirm := strings.TrimSpace(r.FormValue("confirm"))
+
+		if username == "" || password == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Username and password are required"})
+			return
+		}
+		if password != confirm {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Passwords do not match"})
+			return
+		}
+
 		d, err := db.Connect()
 		if err != nil {
-			http.Error(w, "Internal error", http.StatusInternalServerError)
+			logger.Error("db connect: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Internal server error"})
 			return
 		}
 		defer d.Close()
+
 		err = d.CreateUser(username, password)
 		if err != nil {
-			http.Error(w, "Username already exists or invalid password", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			_ = tmpl.Execute(w, map[string]string{"Error": "Username already exists or invalid password"})
 			return
 		}
+
 		http.Redirect(w, r, "/login", http.StatusFound)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -609,9 +755,14 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 	var totalCount, notAppliedCount, appliedCount int
 	err = d.Conn.QueryRow(`
 		SELECT COUNT(*), 
-			SUM(CASE WHEN status = 'Not Applied' THEN 1 ELSE 0 END), 
-			SUM(CASE WHEN status = 'Applied' THEN 1 ELSE 0 END) 
+			COALESCE(SUM(CASE WHEN status = 'Not Applied' THEN 1 ELSE 0 END), 0), 
+			COALESCE(SUM(CASE WHEN status = 'Applied' THEN 1 ELSE 0 END), 0) 
 		FROM job_applications`).Scan(&totalCount, &notAppliedCount, &appliedCount)
+	if err != nil {
+		logger.Error("query job stats: %v", err)
+		http.Error(w, "Query error for stats", http.StatusInternalServerError)
+		return
+	}
 	if err != nil && err != sql.ErrNoRows {
 		logger.Error("query job stats: %v", err)
 		http.Error(w, "Query error for stats", http.StatusInternalServerError)
@@ -683,10 +834,14 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 	var clauses []string
 	var args []interface{}
 
-	// Status filter
+	// Status filter - default to "Not Applied" unless explicitly set
 	if status != "" {
 		clauses = append(clauses, fmt.Sprintf("status = $%d", len(args)+1))
 		args = append(args, status)
+	} else {
+		// By default, only show "Not Applied" jobs
+		clauses = append(clauses, fmt.Sprintf("status = $%d", len(args)+1))
+		args = append(args, "Not Applied")
 	}
 	// Company filter
 	if company != "" {
@@ -966,21 +1121,10 @@ func main() {
 	port := flag.String("port", "8080", "port to serve on")
 	flag.Parse()
 
-	// Connect to DB and ensure schemas are created
-	d, err := db.Connect()
+	// Connect to DB and ensure schema is created (from updated main.go logic)
+	_, err := db.Connect()
 	if err != nil {
 		logger.Fatal("Failed to connect to DB: %v", err)
-	}
-	defer d.Close()
-
-	// Create job applications table
-	if err := d.CreateSchema(); err != nil {
-		logger.Fatal("Failed to create job_applications schema: %v", err)
-	}
-
-	// Create users table
-	if err := d.CreateUserSchema(); err != nil {
-		logger.Fatal("Failed to create users schema: %v", err)
 	}
 
 	// All routes are now based on the authenticated logic
