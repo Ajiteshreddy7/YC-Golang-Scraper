@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: yc-job-tracker
+    env: go
+    buildCommand: go build -o dashboard ./cmd/dashboard
+    startCommand: ./dashboard
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DB_PATH
+        value: ./data/jobs.db
+      - key: LOG_LEVEL
+        value: INFO
