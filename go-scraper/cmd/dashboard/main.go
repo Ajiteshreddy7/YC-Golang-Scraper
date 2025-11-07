@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/ajiteshreddy7/yc-go-scraper/internal/db"
 	"github.com/ajiteshreddy7/yc-go-scraper/internal/logger"
+	"github.com/gorilla/sessions"
 )
 
 // -------------------- TYPES --------------------
@@ -63,57 +62,85 @@ var loginHTML = `<!doctype html>
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title>Go Scrape — Jobs at One sight</title>
+	<title>YC Job Scraper — Intelligent Job Tracker</title>
 	<style>
-		:root{--bg:#f4f6f8;--card:#fff;--accent:#0b66c3;--muted:#6b7280}
+		:root{--bg:#f4f6f8;--card:#fff;--accent:#0b66c3;--muted:#6b7280;--border:#e2e8f0}
+		*{box-sizing:border-box}
 		html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
-		body{background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:32px}
-		.container{max-width:420px;width:100%}
-		.card{background:var(--card);border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.08);padding:32px}
-		.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-		.logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#2aa6ff);display:inline-block}
-		h1{margin:0;font-size:20px;color:#0f172a}
-		p.lead{margin:6px 0 18px;color:var(--muted);font-size:13px}
-		label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
-		input[type=text],input[type=password]{width:100%;padding:12px 14px;border:1px solid #e6e9ee;border-radius:8px;margin-bottom:12px;font-size:14px}
-		.actions{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-		button.primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
-		a.link{color:var(--accent);text-decoration:none;font-weight:600}
-		.footer{margin-top:14px;font-size:13px;color:var(--muted);text-align:center}
+		body{background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:20px;min-height:100vh}
+		.container{max-width:440px;width:100%}
+		.card{background:var(--card);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,0.15);padding:40px;border:1px solid rgba(255,255,255,0.2)}
+		.brand{text-align:center;margin-bottom:32px}
+		.logo{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#2aa6ff);display:inline-block;margin-bottom:16px;position:relative}
+		.logo::after{content:"🚀";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px}
+		h1{margin:0 0 8px;font-size:24px;color:#111827;font-weight:700;text-align:center}
+		p.lead{margin:0 0 32px;color:var(--muted);font-size:14px;text-align:center;line-height:1.5}
+		.form-group{margin-bottom:20px}
+		label{display:block;font-size:14px;color:#374151;margin-bottom:8px;font-weight:500}
+		input[type=text],input[type=password]{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;transition:border-color 0.2s ease,box-shadow 0.2s ease;background:#fff}
+		input[type=text]:focus,input[type=password]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(11,102,195,0.1)}
+		input[type=text]:hover,input[type=password]:hover{border-color:#cbd5e0}
+		.remember-me{margin:16px 0 24px;display:flex;align-items:center;gap:8px}
+		.remember-me input[type=checkbox]{width:auto;margin:0}
+		.remember-me label{margin:0;font-size:14px;color:var(--muted);font-weight:400}
+		.btn-group{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+		button.primary{background:var(--accent);color:#fff;border:none;padding:14px 20px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;width:100%;transition:background-color 0.2s ease,transform 0.1s ease}
+		button.primary:hover{background:#0a5aa8;transform:translateY(-1px)}
+		button.primary:active{transform:translateY(0)}
+		a.link{color:var(--accent);text-decoration:none;font-weight:500;text-align:center;padding:12px;border-radius:8px;transition:background-color 0.2s ease}
+		a.link:hover{background:#f8fafc}
+		.footer{margin-top:24px;padding-top:20px;border-top:1px solid #f1f5f9;font-size:13px;color:var(--muted);text-align:center;line-height:1.6}
+		.footer a{color:var(--accent);text-decoration:none}
+		.footer a:hover{text-decoration:underline}
+		.demo-info{margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#4a5568}
+		.demo-info strong{color:#2d3748}
 		/* toast */
-		.toast{position:fixed;right:20px;top:20px;background:#fff;border-left:4px solid #f87171;padding:12px 16px;border-radius:6px;box-shadow:0 6px 24px rgba(2,6,23,0.08);display:none}
+		.toast{position:fixed;right:20px;top:20px;background:#fff;border-left:4px solid #f87171;padding:12px 16px;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);display:none;z-index:1000}
 		.toast.show{display:block}
+		@media (max-width: 480px) {
+			body{padding:16px}
+			.card{padding:32px 24px}
+			h1{font-size:22px}
+		}
 	</style>
 </head>
 <body>
 	<div class="container">
 		<div class="card">
 			<div class="brand">
-				<span class="logo" aria-hidden="true"></span>
-				<div>
-					<h1>Go Scrape</h1>
-					<div class="lead">Jobs at One sight — Sign in to manage your job applications</div>
-				</div>
+				<div class="logo"></div>
+				<h1>YC Job Scraper</h1>
+				<p class="lead">Intelligent early-career job tracker — Sign in to manage your applications</p>
 			</div>
 
 			<form method="POST" action="/login" id="loginForm">
-				<label for="username">Email or username</label>
-				<input id="username" name="username" type="text" autocomplete="username" required />
-
-				<label for="password">Password</label>
-				<input id="password" name="password" type="password" autocomplete="current-password" required />
-
-				<div class="actions">
-					<div><label style="font-size:13px;color:var(--muted)"><input type="checkbox" name="remember" /> Remember me</label></div>
+				<div class="form-group">
+					<label for="username">Username</label>
+					<input id="username" name="username" type="text" autocomplete="username" placeholder="Enter your username" required />
 				</div>
 
-				<div style="margin-top:18px;display:flex;gap:8px">
+				<div class="form-group">
+					<label for="password">Password</label>
+					<input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+				</div>
+
+				<div class="remember-me">
+					<input type="checkbox" id="remember" name="remember" />
+					<label for="remember">Remember me for 30 days</label>
+				</div>
+
+				<div class="btn-group">
 					<button class="primary" type="submit">Sign in</button>
-					<a class="link" href="/register" style="align-self:center">Create account</a>
+					<a class="link" href="#" onclick="alert('Registration coming soon!')">Create new account</a>
 				</div>
 			</form>
 
-			<div class="footer">By signing in you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+			<div class="footer">
+				By signing in you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+				<div class="demo-info">
+					<strong>Demo Credentials:</strong> admin / password123
+				</div>
+			</div>
 		</div>
 	</div>
 
@@ -209,127 +236,6 @@ var registerHTML = `<!doctype html>
 
 // -------------------- UI TEMPLATES (from main (1).go) --------------------
 
-const dashboardHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Your Applications</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 40px;
-            background-color: #f8f9fa;
-        }
-        h1 {
-            color: #343a40;
-            text-align: center;
-        }
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 30px 0;
-        }
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-            min-width: 150px;
-        }
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .stat-label {
-            color: #6c757d;
-            margin-top: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-        a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .status-not-applied {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .status-applied {
-            color: #28a745;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-        <h1 style="margin:0; color: #343a40;">Your Applications</h1>
-        <div style="font-size: 0.95em; color: #6c757d;">Logged in as <strong>{{.User}}</strong> — <a href="/filters" style="color: #007bff;">Filters</a> | <a href="/logout" style="color: #dc3545;">Logout</a></div>
-    </div>    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-number">{{.TotalJobs}}</div>
-            <div class="stat-label">Total Jobs</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{.NotApplied}}</div>
-            <div class="stat-label">Not Applied</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{.Applied}}</div>
-            <div class="stat-label">Applied</div>
-        </div>
-    </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Company</th>
-                <th>Title</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th>Link</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Jobs}}
-            <tr>
-                <td>{{.DateAdded.Format "2006-01-02"}}</td>
-                <td>{{.Company}}</td>
-                <td>{{.Title}}</td>
-                <td>{{.Location}}</td>
-                <td><span class="status-{{.Status | lower}}">{{.Status}}</span></td>
-                <td><a href="{{.URL}}" target="_blank">Open</a></td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
-</body>
-</html>
-`
-
 const landingHTML = `
 <!DOCTYPE html>
 <html>
@@ -360,7 +266,7 @@ const landingHTML = `
  </head>
  <body>
    <div style="max-width: 900px; margin: 0 auto; display:flex; justify-content:flex-end; padding-bottom: 10px;">
-        <div style="font-size: 0.95em; color: #6c757d;">Logged in as <strong>{{.User}}</strong> — <a href="/dashboard">Dashboard</a> | <a href="/logout">Logout</a></div>
+        <div style="font-size: 0.95em; color: #6c757d;">Logged in as <strong>{{.User}}</strong> — <a href="/results?status=Not%20Applied">Dashboard</a> | <a href="/logout">Logout</a></div>
     </div>
    <div class="container">
 	 <h1>What jobs are you looking for?</h1>
@@ -409,11 +315,35 @@ const resultsHTML = `
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Results</title>
+	<title>Job Dashboard</title>
 	<style>
 		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; background: #f8f9fa; }
 		.container { max-width: 1100px; margin: 0 auto; }
 		h1 { color: #343a40; }
+		/* Dashboard Stats Styling */
+		.stats {
+			display: flex;
+			justify-content: space-around;
+			margin: 20px 0 30px 0;
+		}
+		.stat-card {
+			background: white;
+			padding: 20px;
+			border-radius: 8px;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+			text-align: center;
+			min-width: 150px;
+		}
+		.stat-number {
+			font-size: 2em;
+			font-weight: bold;
+			color: #007bff;
+		}
+		.stat-label {
+			color: #6c757d;
+			margin-top: 5px;
+		}
+		/* Filter Pills and Job List Styling */
 		.pill { display:inline-block; background:#e9ecef; color:#495057; padding:6px 10px; border-radius:999px; margin: 0 6px 6px 0; font-size: 0.9em; }
 		ul { list-style: none; padding: 0; }
 		li { background:#fff; padding:14px 16px; border-radius:8px; margin-bottom:10px; box-shadow: 0 2px 6px rgba(0,0,0,.06); display:flex; justify-content:space-between; align-items:center; gap: 10px; }
@@ -474,12 +404,29 @@ const resultsHTML = `
  <body>
    <div class="container">
 	 <div class="header">
-	   <h1>Jobs ({{.Total}} results)</h1>
+	   <h1>Job Dashboard ({{.Total}} jobs found)</h1>
 	   <div class="actions">
 		 <a class="download" href="/download-csv?{{.QueryString}}">⬇ Download CSV</a>
 		 <a class="back" href="/filters">◀ Back to Filters</a>
 	   </div>
 	 </div>
+
+	 <!-- Dashboard Stats Section -->
+	 <div class="stats">
+		<div class="stat-card">
+			<div class="stat-number">{{.TotalJobs}}</div>
+			<div class="stat-label">Total Jobs</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">{{.NotApplied}}</div>
+			<div class="stat-label">Not Applied</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">{{.Applied}}</div>
+			<div class="stat-label">Applied</div>
+		</div>
+	 </div>
+
 	 <div style="margin-bottom:10px;">
 	   {{if .Query}}<span class="pill">Search: {{.Query}}</span>{{end}}
 	   {{if .Company}}<span class="pill">Company: {{.Company}}</span>{{end}}
@@ -509,6 +456,7 @@ const resultsHTML = `
  </body>
  </html>
 `
+
 // -------------------- HELPERS --------------------
 
 var levelRegex = regexp.MustCompile("(?i)(intern|new grad|new graduate|entry level|entry-level|junior|associate|apprentice|co-op|co op|coop|fellow)")
@@ -557,8 +505,8 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	// Directs logged-in users to the main dashboard page
-	http.Redirect(w, r, "/dashboard", http.StatusFound)
+	// Directs logged-in users to the filters page as the main landing page
+	http.Redirect(w, r, "/filters", http.StatusFound)
 }
 
 // loginHandler handles GET (show form) and POST (process login)
@@ -597,7 +545,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		session, _ := store.Get(r, "session")
 		session.Values["user"] = username
 		session.Save(r, w)
-		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		http.Redirect(w, r, "/filters", http.StatusFound)
 		return
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -741,76 +689,10 @@ func filtersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// dashboardHandler shows the job stats (authenticated)
+// dashboardHandler redirects to the results page (which now serves as the main dashboard)
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
-	d, err := db.Connect()
-	if err != nil {
-		logger.Error("db connect: %v", err)
-		http.Error(w, "Database connection error", http.StatusInternalServerError)
-		return
-	}
-	defer d.Close()
-
-	// 1. Calculate stats (TOTAL, NOT APPLIED, APPLIED) across ALL jobs
-	var totalCount, notAppliedCount, appliedCount int
-	err = d.Conn.QueryRow(`
-		SELECT COUNT(*), 
-			COALESCE(SUM(CASE WHEN status = 'Not Applied' THEN 1 ELSE 0 END), 0), 
-			COALESCE(SUM(CASE WHEN status = 'Applied' THEN 1 ELSE 0 END), 0) 
-		FROM job_applications`).Scan(&totalCount, &notAppliedCount, &appliedCount)
-	if err != nil {
-		logger.Error("query job stats: %v", err)
-		http.Error(w, "Query error for stats", http.StatusInternalServerError)
-		return
-	}
-	if err != nil && err != sql.ErrNoRows {
-		logger.Error("query job stats: %v", err)
-		http.Error(w, "Query error for stats", http.StatusInternalServerError)
-		return
-	}
-	
-	// 2. Query for JOBS, but filter to show ONLY 'Applied' jobs on the dashboard page
-	rows, err := d.Conn.Query(`
-		SELECT id, title, company, location, type, url, date_added, status 
-		FROM job_applications
-		WHERE status = 'Applied' 
-		ORDER BY date_added DESC`)
-	if err != nil {
-		logger.Error("query applied jobs: %v", err)
-		http.Error(w, "Query error for jobs", http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var jobs []Job
-	for rows.Next() {
-		var job Job
-		var typ string
-		if err := rows.Scan(&job.ID, &job.Title, &job.Company, &job.Location, &typ, &job.URL, &job.DateAdded, &job.Status); err != nil {
-			logger.Error("scan row: %v", err)
-			continue
-		}
-		job.Type = typ
-		jobs = append(jobs, job)
-	}
-
-	session, _ := store.Get(r, "session")
-	user := fmt.Sprintf("%v", session.Values["user"])
-
-	data := PageData{
-		Jobs:       jobs,
-		TotalJobs:  totalCount,
-		NotApplied: notAppliedCount,
-		Applied:    appliedCount,
-		User:       user,
-	}
-
-	// template with a small helper to create CSS class names
-	tmpl := template.Must(template.New("dashboard").Funcs(template.FuncMap{"lower": func(s string) string { return strings.ToLower(strings.ReplaceAll(s, " ", "-")) }}).Parse(dashboardHTML))
-
-	if err := tmpl.Execute(w, data); err != nil {
-		logger.Error("template execute: %v", err)
-	}
+	// Redirect to results page with default filters (Not Applied status)
+	http.Redirect(w, r, "/results?status=Not%20Applied", http.StatusFound)
 }
 
 // resultsHandler shows filtered job results (authenticated, includes pagination)
@@ -829,6 +711,19 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer d.Close()
+
+	// First, get overall job statistics for the dashboard counters
+	var totalCount, notAppliedCount, appliedCount int
+	err = d.Conn.QueryRow(`
+		SELECT COUNT(*), 
+			COALESCE(SUM(CASE WHEN status = 'Not Applied' THEN 1 ELSE 0 END), 0), 
+			COALESCE(SUM(CASE WHEN status = 'Applied' THEN 1 ELSE 0 END), 0) 
+		FROM job_applications`).Scan(&totalCount, &notAppliedCount, &appliedCount)
+	if err != nil {
+		logger.Error("query job stats: %v", err)
+		http.Error(w, "Query error for stats", http.StatusInternalServerError)
+		return
+	}
 
 	// Build WHERE clause
 	var clauses []string
@@ -957,7 +852,7 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		jobs = append(jobs, job)
 	}
 
-	// Struct used by the template (simplified to match the older UI format)
+	// Struct used by the template (enhanced with job statistics)
 	rt := template.Must(template.New("results").Funcs(template.FuncMap{"eq": func(a, b interface{}) bool { return a == b }}).Parse(resultsHTML))
 	data := struct {
 		Jobs        []Job
@@ -968,9 +863,13 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		Status      string
 		Total       int
 		QueryString string
+		TotalJobs   int
+		NotApplied  int
+		Applied     int
 	}{
 		Jobs: jobs, Levels: selLevels, Query: q, Company: company, Location: location,
 		Status: status, Total: total, QueryString: r.URL.RawQuery,
+		TotalJobs: totalCount, NotApplied: notAppliedCount, Applied: appliedCount,
 	}
 	if err := rt.Execute(w, data); err != nil {
 		logger.Error("results template: %v", err)
@@ -1139,7 +1038,7 @@ func main() {
 	http.HandleFunc("/results", AuthRequired(resultsHandler))
 	http.HandleFunc("/download-csv", AuthRequired(downloadCSVHandler))
 	http.HandleFunc("/mark-applied", AuthRequired(markAppliedHandler))
-	
+
 	logger.Info("Listening on http://localhost:%s", *port)
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		logger.Fatal("Server failed: %v", err)
