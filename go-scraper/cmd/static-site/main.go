@@ -83,9 +83,12 @@ const indexHTML = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Page background with subtle layered shapes for a modern feel */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 50%, #f7fbfc 100%); padding: 20px; position: relative; min-height: 100vh; }
+    body::before { content: ""; position: fixed; inset: 0; background-image: radial-gradient(circle at 10% 20%, rgba(99,102,241,0.08) 0 12%, transparent 18%), radial-gradient(circle at 85% 80%, rgba(16,185,129,0.06) 0 12%, transparent 18%); pointer-events: none; z-index: 0; }
+    /* Ensure main content sits above decorative background */
+    .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
         h1 { color: #343a40; text-align: center; margin-bottom: 10px; }
         .subtitle { text-align: center; color: #6c757d; margin-bottom: 30px; }
         .filters { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -430,74 +433,114 @@ const indexHTML = `<!DOCTYPE html>
 </html>`
 
 func main() {
-	outDir := flag.String("out", "public", "Output directory for static site")
-	flag.Parse()
+    outDir := flag.String("out", "public", "Output directory for static site")
+    demo := flag.Bool("demo", false, "Generate demo site using sample data without DB")
+    flag.Parse()
 
-	logger.InitFromEnv()
-	logger.Info("Generating static site")
+    logger.InitFromEnv()
+    logger.Info("Generating static site")
 
-	d, err := db.Connect()
-	if err != nil {
-		logger.Fatal("db connect: %v", err)
-	}
-	defer d.Close()
+    type JobWithLevels struct {
+        Job
+        Levels      string
+        StatusClass string
+    }
 
-	// Fetch all jobs
-	rows, err := d.Conn.Query(`SELECT id, title, company, location, type, url, date_added, status FROM job_applications ORDER BY date_added DESC`)
-	if err != nil {
-		logger.Fatal("query jobs: %v", err)
-	}
-	defer rows.Close()
+    var jobs []JobWithLevels
+    levelSet := map[string]bool{}
+    companySet := map[string]bool{}
+    locationSet := map[string]bool{}
+    notApplied := 0
+    applied := 0
 
-	type JobWithLevels struct {
-		Job
-		Levels      string
-		StatusClass string
-	}
+    if *demo {
+        // Demo mode: create sample jobs without connecting to DB
+        logger.Info("Running in demo mode — generating sample data")
+        sample := []Job{
+            {ID: 1, Title: "Software Engineer Intern", Company: "Acme Labs", Location: "Remote", Type: "Internship", URL: "https://example.com/acme-intern", DateAdded: time.Now().AddDate(0, 0, -7), Status: "Not Applied"},
+            {ID: 2, Title: "New Grad SWE", Company: "BetaWorks", Location: "San Francisco, CA", Type: "Full-time", URL: "https://example.com/beta-newgrad", DateAdded: time.Now().AddDate(0, 0, -14), Status: "Applied"},
+            {ID: 3, Title: "Junior Data Analyst", Company: "Gamma Data", Location: "New York, NY", Type: "Full-time", URL: "https://example.com/gamma-analyst", DateAdded: time.Now().AddDate(0, 0, -3), Status: "Not Applied"},
+        }
 
-	var jobs []JobWithLevels
-	levelSet := map[string]bool{}
-	companySet := map[string]bool{}
-	locationSet := map[string]bool{}
-	notApplied := 0
-	applied := 0
+        for _, job := range sample {
+            // Derive levels
+            levels := deriveLevels(job.Title)
+            for _, lv := range levels {
+                levelSet[lv] = true
+            }
+            levelsStr := strings.Join(levels, ", ")
+            if levelsStr == "" {
+                levelsStr = "General"
+            }
 
-	for rows.Next() {
-		var job Job
-		var typ string
-		if err := rows.Scan(&job.ID, &job.Title, &job.Company, &job.Location, &typ, &job.URL, &job.DateAdded, &job.Status); err != nil {
-			logger.Error("scan row: %v", err)
-			continue
-		}
-		job.Type = typ
+            statusClass := "not-applied"
+            if job.Status == "Applied" {
+                statusClass = "applied"
+                applied++
+            } else {
+                notApplied++
+            }
 
-		// Derive levels
-		levels := deriveLevels(job.Title)
-		for _, lv := range levels {
-			levelSet[lv] = true
-		}
-		levelsStr := strings.Join(levels, ", ")
-		if levelsStr == "" {
-			levelsStr = "General"
-		}
+            jobs = append(jobs, JobWithLevels{
+                Job:         job,
+                Levels:      levelsStr,
+                StatusClass: statusClass,
+            })
 
-		statusClass := "not-applied"
-		if job.Status == "Applied" {
-			statusClass = "applied"
-			applied++
-		} else {
-			notApplied++
-		}
+            companySet[job.Company] = true
+            locationSet[job.Location] = true
+        }
+    } else {
+        d, err := db.Connect()
+        if err != nil {
+            logger.Fatal("db connect: %v", err)
+        }
+        defer d.Close()
 
-		jobs = append(jobs, JobWithLevels{
-			Job:         job,
-			Levels:      levelsStr,
-			StatusClass: statusClass,
-		})
+        // Fetch all jobs
+        rows, err := d.Conn.Query(`SELECT id, title, company, location, type, url, date_added, status FROM job_applications ORDER BY date_added DESC`)
+        if err != nil {
+            logger.Fatal("query jobs: %v", err)
+        }
+        defer rows.Close()
 
-		companySet[job.Company] = true
-		locationSet[job.Location] = true
-	}
+        for rows.Next() {
+            var job Job
+            var typ string
+            if err := rows.Scan(&job.ID, &job.Title, &job.Company, &job.Location, &typ, &job.URL, &job.DateAdded, &job.Status); err != nil {
+                logger.Error("scan row: %v", err)
+                continue
+            }
+            job.Type = typ
+
+            // Derive levels
+            levels := deriveLevels(job.Title)
+            for _, lv := range levels {
+                levelSet[lv] = true
+            }
+            levelsStr := strings.Join(levels, ", ")
+            if levelsStr == "" {
+                levelsStr = "General"
+            }
+
+            statusClass := "not-applied"
+            if job.Status == "Applied" {
+                statusClass = "applied"
+                applied++
+            } else {
+                notApplied++
+            }
+
+            jobs = append(jobs, JobWithLevels{
+                Job:         job,
+                Levels:      levelsStr,
+                StatusClass: statusClass,
+            })
+
+            companySet[job.Company] = true
+            locationSet[job.Location] = true
+        }
+    }
 
 	// Convert sets to sorted slices
 	var levels []string
