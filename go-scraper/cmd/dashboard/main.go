@@ -1014,6 +1014,53 @@ func markAppliedHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"success":true}`))
 }
 
+// initAdminHandler creates admin user if it doesn't exist (for Render deployment)
+func initAdminHandler(w http.ResponseWriter, r *http.Request) {
+	d, err := db.Connect()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Database connection failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer d.Close()
+
+	// Check if admin user already exists
+	_, _, _, err = d.GetUserByUsername("admin")
+	if err == nil {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`
+		<!DOCTYPE html>
+		<html><head><title>Admin Already Exists</title></head>
+		<body style="font-family: Arial; text-align: center; padding: 50px;">
+			<h2>✅ Admin User Already Exists</h2>
+			<p>The admin user is already configured.</p>
+			<p><strong>Username:</strong> admin</p>
+			<p><strong>Password:</strong> password123</p>
+			<a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login</a>
+		</body></html>`))
+		return
+	}
+
+	// Create admin user
+	err = d.CreateUser("admin", "password123")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create admin user: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(`
+	<!DOCTYPE html>
+	<html><head><title>Admin User Created</title></head>
+	<body style="font-family: Arial; text-align: center; padding: 50px;">
+		<h2>✅ Admin User Created Successfully!</h2>
+		<p>Your admin account has been set up.</p>
+		<p><strong>Username:</strong> admin</p>
+		<p><strong>Password:</strong> password123</p>
+		<p><em>Please change the password after first login</em></p>
+		<a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Login</a>
+	</body></html>`))
+}
+
 // -------------------- MAIN --------------------
 
 func main() {
@@ -1037,6 +1084,9 @@ func main() {
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/logout", logoutHandler)
+	
+	// Admin initialization route (for Render deployment)
+	http.HandleFunc("/init-admin", initAdminHandler)
 
 	// Protected routes (UI from main (1).go, logic from main.go)
 	http.HandleFunc("/filters", AuthRequired(filtersHandler))
