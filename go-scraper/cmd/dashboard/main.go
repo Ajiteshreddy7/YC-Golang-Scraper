@@ -1061,6 +1061,84 @@ func initAdminHandler(w http.ResponseWriter, r *http.Request) {
 	</body></html>`))
 }
 
+// JobImport represents the structure for importing jobs
+type JobImport struct {
+	Title     string    `json:"title"`
+	Company   string    `json:"company"`
+	Location  string    `json:"location"`
+	Type      string    `json:"type"`
+	URL       string    `json:"url"`
+	DateAdded time.Time `json:"date_added"`
+	Status    string    `json:"status"`
+}
+
+// importJobsHandler imports jobs from a JSON URL (for Render deployment)
+func importJobsHandler(w http.ResponseWriter, r *http.Request) {
+	jsonURL := r.URL.Query().Get("url")
+	if jsonURL == "" {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`
+		<!DOCTYPE html>
+		<html><head><title>Import Jobs</title></head>
+		<body style="font-family: Arial; text-align: center; padding: 50px;">
+			<h2>📥 Import Jobs to Render</h2>
+			<p>Enter the URL of your jobs JSON file:</p>
+			<form method="GET">
+				<input type="url" name="url" placeholder="https://example.com/jobs.json" style="width: 400px; padding: 10px;" required>
+				<br><br>
+				<button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px;">Import Jobs</button>
+			</form>
+			<br>
+			<p><small>💡 Export your local jobs first using: <code>go run ./cmd/export-jobs</code></small></p>
+		</body></html>`))
+		return
+	}
+
+	// Fetch JSON from URL
+	resp, err := http.Get(jsonURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch URL: %v", err), http.StatusBadRequest)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Parse JSON
+	var jobs []JobImport
+	err = json.NewDecoder(resp.Body).Decode(&jobs)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse JSON: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Connect to database
+	d, err := db.Connect()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Database connection failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer d.Close()
+
+	// Import jobs
+	imported := 0
+	for _, job := range jobs {
+		err = d.InsertJobTyped(job.Title, job.Company, job.Location, job.Type, job.URL)
+		if err == nil {
+			imported++
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html><head><title>Jobs Imported</title></head>
+	<body style="font-family: Arial; text-align: center; padding: 50px;">
+		<h2>✅ Jobs Imported Successfully!</h2>
+		<p><strong>%d out of %d jobs imported</strong></p>
+		<p>(Duplicates are automatically skipped)</p>
+		<a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+	</body></html>`, imported, len(jobs))))
+}
+
 // -------------------- MAIN --------------------
 
 func main() {
@@ -1087,6 +1165,9 @@ func main() {
 	
 	// Admin initialization route (for Render deployment)
 	http.HandleFunc("/init-admin", initAdminHandler)
+	
+	// Job import route (for Render deployment)
+	http.HandleFunc("/import-jobs", importJobsHandler)
 
 	// Protected routes (UI from main (1).go, logic from main.go)
 	http.HandleFunc("/filters", AuthRequired(filtersHandler))
