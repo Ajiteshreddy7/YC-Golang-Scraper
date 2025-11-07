@@ -2,7 +2,7 @@ services:
   - type: web
     name: yc-job-tracker
     env: go
-    buildCommand: go build -o dashboard ./cmd/dashboard
+    buildCommand: go build -o dashboard ./cmd/dashboard && go build -o init-db ./cmd/init && ./init-db
     startCommand: ./dashboard
     envVars:
       - key: PORT

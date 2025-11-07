@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1016,9 +1017,14 @@ func markAppliedHandler(w http.ResponseWriter, r *http.Request) {
 // -------------------- MAIN --------------------
 
 func main() {
-	// Flag parsing remains (if needed)
-	port := flag.String("port", "8080", "port to serve on")
-	flag.Parse()
+	// Check for PORT environment variable (required for Render)
+	port := os.Getenv("PORT")
+	if port == "" {
+		// Fallback to flag or default
+		portFlag := flag.String("port", "8080", "port to serve on")
+		flag.Parse()
+		port = *portFlag
+	}
 
 	// Connect to DB and ensure schema is created (from updated main.go logic)
 	_, err := db.Connect()
@@ -1039,8 +1045,8 @@ func main() {
 	http.HandleFunc("/download-csv", AuthRequired(downloadCSVHandler))
 	http.HandleFunc("/mark-applied", AuthRequired(markAppliedHandler))
 
-	logger.Info("Listening on http://localhost:%s", *port)
-	if err := http.ListenAndServe(":"+*port, nil); err != nil {
+	logger.Info("Listening on http://localhost:%s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		logger.Fatal("Server failed: %v", err)
 	}
 }
