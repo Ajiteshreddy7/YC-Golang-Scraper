@@ -2,7 +2,49 @@
 
 
 
-> 🚀 An intelligent job aggregator that automatically discovers and tracks early-career opportunities from Y Combinator companies. Built with Go, powered by GitHub Actions, and hosted for free on GitHub Pages.An intelligent job scraper written in Go that discovers early‑career roles from Greenhouse boards, stores them in SQLite, exports CSV, and serves a static dashboard via GitHub Pages.
+# YC Job Scraper
+
+> 🚀 An intelligent job aggregator with authentication that automatically discovers and tracks early-career opportunities from Y Combinator companies. Built with Go, featuring secure user accounts, job tracking, and deployed on Render + GitHub Pages.
+
+[![Deploy Status](https://github.com/Ajiteshreddy7/YC-Golang-Scraper/workflows/Deploy%20to%20GitHub%20Pages/badge.svg)](https://github.com/Ajiteshreddy7/YC-Golang-Scraper/actions)
+[![Go Version](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go)](https://go.dev/)
+
+## 🌟 Features
+
+- **Smart Scraping**: Greenhouse API integration with Y Combinator companies
+- **Authentication System**: Secure user accounts with bcrypt password hashing
+- **Job Tracking**: Mark jobs as applied, search, filter, and manage applications
+- **Dual Deployment**: 
+  - 🔐 **Authenticated Dashboard**: [yc-golang-scraper.onrender.com](https://yc-golang-scraper.onrender.com)
+  - 📊 **Static Job Listings**: [ajiteshreddy7.github.io/YC-Go-Scraper](https://ajiteshreddy7.github.io/YC-Go-Scraper)
+- **Early-Career Focus**: Filters for internships, new grad, and junior positions
+- **SQLite Storage**: Local database with deduplication
+- **CSV Export**: Download your job applications data
+- **Automated Updates**: Daily scraping via GitHub Actions
+
+## 🚀 Live Demo
+
+### 🔐 Authenticated Platform (Full Features)
+**URL**: https://yc-golang-scraper.onrender.com
+
+**Features**:
+- ✅ Create account & secure login
+- ✅ Mark jobs as applied
+- ✅ Personal application tracking
+- ✅ Search & filter jobs
+- ✅ CSV export of applications
+- ✅ Responsive design
+
+**Demo Credentials**: `admin` / `password123`
+
+### 📊 Static Job Listings (Public)
+**URL**: https://ajiteshreddy7.github.io/YC-Go-Scraper
+
+**Features**:
+- ✅ Browse all scraped jobs
+- ✅ Search and filter
+- ✅ No account required
+- ✅ Updated daily at 3 AM UTC
 
 
 
@@ -50,59 +92,53 @@ Lightweight job aggregator for YC companies. Scrapes early‑career roles (inter
 
 ## 🏗️ Architecture
 
-### System Overview
+### Hybrid Deployment Strategy
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      GitHub Actions                          │
-│  (Runs daily at 3 AM UTC or on-demand via manual trigger)  │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-         ┌──────────────────────┐
-         │   Scraper Binary     │
-         │  (cmd/scraper)       │
-         │                      │
-         │ • Queries Greenhouse │
-         │ • Filters jobs       │
-         │ • Deduplicates       │
-         └──────────┬───────────┘
-                    │
-                    ▼
-         ┌──────────────────────┐
-         │   SQLite Database    │
-         │   (data/jobs.db)     │
-         │                      │
-         │ • Job title          │
-         │ • Company            │
-         │ • Location           │
-         │ • Apply URL          │
-         │ • Posted date        │
-         └──────────┬───────────┘
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-        ▼                       ▼
-┌─────────────────┐   ┌─────────────────┐
-│ Static Site Gen │   │  CSV Exporter   │
-│ (cmd/static)    │   │ (internal/exp.) │
-│                 │   │                 │
-│ • index.html    │   │ • job_apps.csv  │
-│ • jobs.json     │   └─────────────────┘
-│ • Search UI     │
-│ • Filters       │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────┐
-│   GitHub Pages      │
-│                     │
-│ • Hosts static site │
-│ • Global CDN        │
-│ • Free HTTPS        │
-└─────────────────────┘
-
+                    ┌─────────────────────────────────────┐
+                    │            GitHub Actions           │
+                    │     (Daily scraping at 3 AM UTC)   │
+                    └─────────────┬───────────────────────┘
+                                  │
+                                  ▼
+                    ┌─────────────────────────────────────┐
+                    │         Scraper Process             │
+                    │  • Queries Greenhouse APIs          │
+                    │  • Filters Y Combinator companies   │
+                    │  • Stores in SQLite database        │
+                    └─────────────┬───────────────────────┘
+                                  │
+                ┌─────────────────┴─────────────────┐
+                │                                   │
+                ▼                                   ▼
+   ┌──────────────────────────┐         ┌──────────────────────────┐
+   │     Render.com           │         │     GitHub Pages         │
+   │   (Authentication)       │         │    (Static Listings)     │
+   │                          │         │                          │
+   │ 🔐 User Accounts         │         │ 📊 Public Job Browser    │
+   │ 🎯 Job Tracking          │         │ 🔍 Search & Filter       │
+   │ 📝 Mark as Applied       │         │ 📱 Mobile Responsive     │
+   │ 📊 Personal Dashboard    │         │ 🚀 Global CDN           │
+   │ 📥 CSV Export            │         │ ⚡ Fast Loading          │
+   │                          │         │                          │
+   │ yc-golang-scraper        │         │ ajiteshreddy7.github.io  │
+   │ .onrender.com            │         │ /YC-Go-Scraper           │
+   └──────────────────────────┘         └──────────────────────────┘
 ```
+
+### Why Hybrid Architecture?
+
+**🔐 Render (Authentication Platform)**
+- Persistent user sessions and secure login
+- Personal job application tracking
+- Private user data and preferences
+- Full CRUD operations on job applications
+
+**📊 GitHub Pages (Public Listings)**
+- Fast, global CDN delivery
+- No server costs or maintenance
+- Great for public job discovery
+- SEO-friendly static content
 
 ### Project Structure
 
@@ -110,81 +146,146 @@ Lightweight job aggregator for YC companies. Scrapes early‑career roles (inter
 YC-Golang-Scraper/
 ├── .github/
 │   └── workflows/
-│       └── deploy-pages.yml      # GitHub Actions workflow for automation
+│       └── deploy-pages.yml      # Auto-deployment workflow
 │
 ├── config/
-│   └── scraper_config.json       # List of companies to scrape
-│
-├── data/                         # Generated data (not in git)
-│   ├── jobs.db                   # SQLite database
-│   └── job_applications.csv      # CSV export
+│   └── scraper_config.json       # Y Combinator companies list
 │
 ├── go-scraper/                   # Go application root
 │   ├── cmd/
+│   │   ├── dashboard/
+│   │   │   └── main.go           # Authentication web server (Render)
 │   │   ├── scraper/
-│   │   │   └── main.go           # CLI scraper entrypoint
-│   │   ├── static-site/
-│   │   │   └── main.go           # Static site generator
-│   │   └── dashboard/
-│   │       └── main.go           # Optional local API server
+│   │   │   └── main.go           # Job scraper CLI
+│   │   ├── export/
+│   │   │   └── main.go           # Static site generator (GitHub Pages)
+│   │   └── export-jobs/
+│   │       └── main.go           # Job data export utility
 │   │
 │   ├── internal/
 │   │   ├── db/
-│   │   │   └── db.go             # SQLite connection and schema
+│   │   │   └── db.go             # SQLite schema & operations
 │   │   ├── scraper/
-│   │   │   ├── greenhouse.go     # Greenhouse API client
-│   │   │   ├── greenhouse_test.go
-│   │   │   └── greenhouse_filters_test.go
-│   │   ├── exporter/
-│   │   │   └── exporter.go       # CSV export logic
+│   │   │   └── greenhouse.go     # Greenhouse API client
 │   │   └── logger/
 │   │       └── logger.go         # Structured logging
 │   │
+│   ├── render.yaml               # Render deployment config
 │   ├── go.mod                    # Go module definition
-│   └── go.sum                    # Dependency checksums
+│   └── go.sum                    # Dependencies
 │
-├── public/                       # Generated static site (not in git)
-│   ├── index.html                # Dashboard UI
-│   └── jobs.json                 # JSON API
+├── data/
+│   ├── jobs.db                   # SQLite database (local)
+│   └── job_applications.csv      # CSV exports
 │
-├── .gitignore
 └── README.md
 ```
-## Docs
+## 🚀 Quick Start
 
-- docs/quickstart.md – local setup (Windows/macOS/Linux)
-- docs/deployment.md – GitHub Pages + workflow
-- docs/configuration.md – config file and env vars
+### Option 1: Use the Live Platform (Recommended)
+1. Visit **https://yc-golang-scraper.onrender.com**
+2. Create an account or use demo login: `admin` / `password123`
+3. Start tracking your job applications immediately!
 
+### Option 2: Local Development
+```bash
+# Clone the repository
+git clone https://github.com/Ajiteshreddy7/YC-Golang-Scraper.git
+cd YC-Golang-Scraper/go-scraper
+
+# Install Go dependencies
+go mod tidy
+
+# Initialize database
+go run ./cmd/init
+
+# Run the scraper
+go run ./cmd/scraper --config ../config/scraper_config.json
+
+# Start the authentication dashboard
+go run ./cmd/dashboard --port 8080
+```
+
+Visit http://localhost:8080 to access your local instance.
+
+## 📖 Documentation
+
+- **[Setup Guide](docs/SETUP_GUIDE_V3.md)** - Complete local development setup
+- **[Dashboard Setup](docs/DASHBOARD_SETUP.md)** - Authentication system configuration
+- **[Scraper Setup](docs/SCRAPER_SETUP.md)** - Job scraping configuration
+
+## 🔧 Configuration
+
+The scraper is configured via `config/scraper_config.json`:
+
+```json
+{
+  "companies": [
+    "stripe",
+    "openai", 
+    "anthropic",
+    "databricks",
+    "..."
+  ]
+}
+```
+
+Add Y Combinator portfolio companies to automatically scrape their job boards.
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Authentication Issues
+**Can't create new accounts**
+- Ensure you're using the Render deployment: https://yc-golang-scraper.onrender.com
+- Check that registration is enabled (should see "Create account" button)
 
-**Issue: Scraper finds no jobs**
-- Check company names in `config/scraper_config.json`
-- Verify companies use Greenhouse (visit `boards.greenhouse.io/<company>`)
-- Run with `LOG_LEVEL=DEBUG` for detailed output
+**Login fails**
+- Try demo credentials: `admin` / `password123`
+- Clear browser cookies and try again
+- Check browser console for JavaScript errors
 
-**Issue: GitHub Pages not deploying**
-- Ensure GitHub Pages is enabled (Settings → Pages → Source: GitHub Actions)
-- Check Actions tab for deployment logs
-- Verify workflow file exists at `.github/workflows/deploy-pages.yml`
+### Scraper Issues
+**No jobs found**
+- Verify company names in `config/scraper_config.json` match Greenhouse board names
+- Check if companies use Greenhouse: visit `boards.greenhouse.io/<company>`
+- Run with `LOG_LEVEL=DEBUG` for detailed logs
 
-**Issue: SQLite database locked**
-- Close any open database connections
-- Delete `jobs.db-shm` and `jobs.db-wal` files
-- Restart the scraper
+**Database locked errors**
+- Close any open SQLite connections
+- Delete temporary files: `jobs.db-shm`, `jobs.db-wal`
+- Restart the application
+
+### Deployment Issues
+**GitHub Pages not updating**
+- Check Actions tab for workflow status
+- Verify Pages settings: Settings → Pages → Source: GitHub Actions
+- Workflow file must exist at `.github/workflows/deploy-pages.yml`
+
+**Render deployment failing**
+- Check Render dashboard for build logs
+- Ensure `render.yaml` configuration is correct
+- Verify Go version compatibility (1.21+)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
+## ⭐ Support
+
+If you found this project helpful, please give it a ⭐ on GitHub!
+
+**🔗 Links:**
+- **Authentication Platform**: https://yc-golang-scraper.onrender.com
+- **Static Job Listings**: https://ajiteshreddy7.github.io/YC-Go-Scraper
+- **GitHub Repository**: https://github.com/Ajiteshreddy7/YC-Golang-Scraper
+
+---
 
 <div align="center">
-
-**[⬆ Back to Top](#yc-job-scraper)**
-
-
-
+  <strong>Built with ❤️ for the job search community</strong><br>
+  Helping early-career professionals discover opportunities at Y Combinator companies
 </div>
