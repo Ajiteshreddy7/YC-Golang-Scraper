@@ -8,9 +8,14 @@
 go-scraper/scraper
 go-scraper/dashboard
 go-scraper/static-site
-go-scraper/scraper.exe
-go-scraper/dashboard.exe
-go-scraper/static-site.exe
+go-scraper/dashboard*
+go-scraper/scraper*
+go-scraper/static*
+go-scraper/export*
+
+# Temporary JSON exports
+jobs_export.json
+*/jobs_export.json
 
 # Data files (CSV contains scraped data)
 data/*.csv

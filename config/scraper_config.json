@@ -1,46 +1,27 @@
 {
-  "job_search": {
-    "keywords": [
-      "data engineer",
-      "software engineer",
-      "product manager"
-    ],
-    "locations": [
-      "San Francisco",
-      "Charlotte",
-      "Atlanta",
-      "New York",
-      "Remote"
-    ],
-    "max_jobs_per_search": 5,
-    "delay_between_requests": 3,
-    "search_filters": {
-      "experience_level": ["entry", "mid","intern","new grad"],
-      "job_type": ["full-time", "contract"],
-      "posted_within": "24h"
-    }
-  },
-  "career_sites": {
-    "linkedin": {
-      "enabled": false,
-      "priority": 1,
-      "max_pages": 2
-    },
-    "indeed": {
-      "enabled": false, 
-      "priority": 2,
-      "max_pages": 2
-    },
-    "glassdoor": {
-      "enabled": false,
-      "priority": 3,
-      "max_pages": 1
-    }
-  },
-  "company_career_pages": [
-    "https://careers.google.com/jobs/results/?location=United%20States&employment_type=FULL_TIME&experience_level=ENTRY_LEVEL"
-  ],
   "target_platforms": {
+    "lever": [
+      "netflix",
+      "spotify",
+      "discord",
+      "figma",
+      "notion",
+      "linear",
+      "vercel",
+      "supabase",
+      "planetscale",
+      "railway",
+      "render",
+      "fly",
+      "cloudflare",
+      "fastly",
+      "datadog",
+      "newrelic",
+      "sentry",
+      "loggly",
+      "papertrail",
+      "sumologic"
+    ],
     "greenhouse": [
       "stripe",
       "airbnb",
@@ -82,67 +63,6 @@
       "arista",
       "nutanix",
       "purestorage"
-    ],
-    "lever": [
-      "netflix",
-      "spotify",
-      "discord",
-      "figma",
-      "notion",
-      "linear",
-      "vercel",
-      "supabase",
-      "planetscale",
-      "railway",
-      "render",
-      "fly",
-      "cloudflare",
-      "fastly",
-      "datadog",
-      "newrelic",
-      "sentry",
-      "loggly",
-      "papertrail",
-      "sumologic"
-    ],
-    "workday": [
-      "target",
-      "walmart",
-      "home depot",
-      "lowes",
-      "best buy",
-      "costco",
-      "kroger",
-      "albertsons",
-      "safeway",
-      "publix",
-      "wegmans",
-      "trader joes",
-      "whole foods",
-      "sprouts",
-      "fresh market"
     ]
-  },
-  "targeting": {
-    "locations": ["United States", "Remote"],
-    "experience_levels": ["ENTRY_LEVEL", "INTERN", "NEW_GRAD"],
-    "employment_types": ["FULL_TIME"],
-    "exclude_keywords": ["senior", "lead", "principal", "director", "head of"],
-    "include_keywords": ["entry", "junior", "new grad", "intern", "associate"]
-  },
-  "ai_extraction": {
-    "model": "gemini-2.5-flash",
-    "max_content_length": 8000,
-    "confidence_threshold": 0.7
-  },
-  "database": {
-    "table_name": "job_applications",
-    "batch_size": 10,
-    "duplicate_check": true
-  },
-  "logging": {
-    "level": "INFO",
-    "save_logs": true,
-    "log_file": "scraper.log"
   }
-} 
+}
