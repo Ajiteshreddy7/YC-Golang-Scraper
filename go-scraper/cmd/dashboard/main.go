@@ -1139,6 +1139,52 @@ func importJobsHandler(w http.ResponseWriter, r *http.Request) {
 	</body></html>`, imported, len(jobs))))
 }
 
+// quickSetupHandler creates sample jobs for testing (for Render deployment)
+func quickSetupHandler(w http.ResponseWriter, r *http.Request) {
+	d, err := db.Connect()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Database connection failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer d.Close()
+
+	// Sample jobs to insert
+	sampleJobs := []struct {
+		title, company, location, jobType, url string
+	}{
+		{"Senior Software Engineer", "Y Combinator", "San Francisco, CA", "Full-time", "https://ycombinator.com/jobs/senior-swe"},
+		{"Full Stack Developer", "OpenAI", "Remote", "Full-time", "https://openai.com/jobs/fullstack"},
+		{"Backend Engineer", "Stripe", "San Francisco, CA", "Full-time", "https://stripe.com/jobs/backend"},
+		{"Frontend Developer", "Airbnb", "San Francisco, CA", "Full-time", "https://airbnb.com/jobs/frontend"},
+		{"DevOps Engineer", "Dropbox", "Remote", "Full-time", "https://dropbox.com/jobs/devops"},
+		{"Data Scientist", "Uber", "San Francisco, CA", "Full-time", "https://uber.com/jobs/datascientist"},
+		{"Product Manager", "Meta", "Menlo Park, CA", "Full-time", "https://meta.com/jobs/pm"},
+		{"iOS Developer", "Apple", "Cupertino, CA", "Full-time", "https://apple.com/jobs/ios"},
+		{"Machine Learning Engineer", "Google", "Mountain View, CA", "Full-time", "https://google.com/jobs/ml"},
+		{"Security Engineer", "Netflix", "Los Gatos, CA", "Full-time", "https://netflix.com/jobs/security"},
+	}
+
+	// Insert sample jobs
+	inserted := 0
+	for _, job := range sampleJobs {
+		err = d.InsertJobTyped(job.title, job.company, job.location, job.jobType, job.url)
+		if err == nil {
+			inserted++
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html><head><title>Quick Setup Complete</title></head>
+	<body style="font-family: Arial; text-align: center; padding: 50px;">
+		<h2>✅ Quick Setup Complete!</h2>
+		<p><strong>%d sample jobs added to your dashboard</strong></p>
+		<p>You can now test the full functionality!</p>
+		<a href="/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+	</body></html>`, inserted)))
+}
+
 // -------------------- MAIN --------------------
 
 func main() {
@@ -1162,12 +1208,15 @@ func main() {
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/logout", logoutHandler)
-	
+
 	// Admin initialization route (for Render deployment)
 	http.HandleFunc("/init-admin", initAdminHandler)
-	
+
 	// Job import route (for Render deployment)
 	http.HandleFunc("/import-jobs", importJobsHandler)
+	
+	// Quick setup route (for Render deployment)  
+	http.HandleFunc("/quick-setup", quickSetupHandler)
 
 	// Protected routes (UI from main (1).go, logic from main.go)
 	http.HandleFunc("/filters", AuthRequired(filtersHandler))
