@@ -1185,6 +1185,52 @@ func quickSetupHandler(w http.ResponseWriter, r *http.Request) {
 	</body></html>`, inserted)))
 }
 
+// autoInitialize sets up admin user and sample jobs if database is empty
+func autoInitialize(database *db.DB) {
+	logger.Info("Checking database initialization...")
+	
+	// Check if admin user exists
+	_, _, _, err := database.GetUserByUsername("admin")
+	if err != nil {
+		// Create admin user
+		err = database.CreateUser("admin", "password123")
+		if err == nil {
+			logger.Info("Created admin user (admin/password123)")
+		}
+	}
+
+	// Check if any jobs exist
+	jobs, err := database.ListJobs(db.JobFilter{}, 1, 1)
+	if err != nil || len(jobs) == 0 {
+		// Add sample jobs
+		sampleJobs := []struct {
+			title, company, location, jobType, url string
+		}{
+			{"Senior Software Engineer", "Y Combinator", "San Francisco, CA", "Full-time", "https://ycombinator.com/jobs/senior-swe"},
+			{"Full Stack Developer", "OpenAI", "Remote", "Full-time", "https://openai.com/jobs/fullstack"},
+			{"Backend Engineer", "Stripe", "San Francisco, CA", "Full-time", "https://stripe.com/jobs/backend"},
+			{"Frontend Developer", "Airbnb", "San Francisco, CA", "Full-time", "https://airbnb.com/jobs/frontend"},
+			{"DevOps Engineer", "Dropbox", "Remote", "Full-time", "https://dropbox.com/jobs/devops"},
+			{"Data Scientist", "Uber", "San Francisco, CA", "Full-time", "https://uber.com/jobs/datascientist"},
+			{"Product Manager", "Meta", "Menlo Park, CA", "Full-time", "https://meta.com/jobs/pm"},
+			{"iOS Developer", "Apple", "Cupertino, CA", "Full-time", "https://apple.com/jobs/ios"},
+			{"Machine Learning Engineer", "Google", "Mountain View, CA", "Full-time", "https://google.com/jobs/ml"},
+			{"Security Engineer", "Netflix", "Los Gatos, CA", "Full-time", "https://netflix.com/jobs/security"},
+		}
+
+		inserted := 0
+		for _, job := range sampleJobs {
+			err = database.InsertJobTyped(job.title, job.company, job.location, job.jobType, job.url)
+			if err == nil {
+				inserted++
+			}
+		}
+		logger.Info("Auto-initialized database with %d sample jobs", inserted)
+	} else {
+		logger.Info("Database already contains %d jobs", len(jobs))
+	}
+}
+
 // -------------------- MAIN --------------------
 
 func main() {
@@ -1198,10 +1244,13 @@ func main() {
 	}
 
 	// Connect to DB and ensure schema is created (from updated main.go logic)
-	_, err := db.Connect()
+	database, err := db.Connect()
 	if err != nil {
 		logger.Fatal("Failed to connect to DB: %v", err)
 	}
+
+	// Auto-initialize for Render deployment
+	autoInitialize(database)
 
 	// All routes are now based on the authenticated logic
 	http.HandleFunc("/", rootHandler)
@@ -1214,8 +1263,8 @@ func main() {
 
 	// Job import route (for Render deployment)
 	http.HandleFunc("/import-jobs", importJobsHandler)
-	
-	// Quick setup route (for Render deployment)  
+
+	// Quick setup route (for Render deployment)
 	http.HandleFunc("/quick-setup", quickSetupHandler)
 
 	// Protected routes (UI from main (1).go, logic from main.go)
