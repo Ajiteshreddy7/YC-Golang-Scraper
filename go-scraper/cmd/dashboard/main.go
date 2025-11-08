@@ -181,9 +181,11 @@ var registerHTML = `<!doctype html>
 		label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
 		input[type=text],input[type=password]{width:100%;padding:12px 14px;border:1px solid #e6e9ee;border-radius:8px;margin-bottom:12px;font-size:14px}
 		.actions{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+		.btn-group{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 		button.primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
-		a.link{color:var(--accent);text-decoration:none;font-weight:600}
+		a.link{color:var(--accent);text-decoration:none;font-weight:600;font-size:13px;text-align:center}
 		.footer{margin-top:14px;font-size:13px;color:var(--muted);text-align:center}
+		.footer a{color:var(--accent);text-decoration:none}
 		.toast{position:fixed;right:20px;top:20px;background:#fff;border-left:4px solid #f87171;padding:12px 16px;border-radius:6px;box-shadow:0 6px 24px rgba(2,6,23,0.08);display:none}
 		.toast.show{display:block}
 	</style>
@@ -209,13 +211,15 @@ var registerHTML = `<!doctype html>
 				<label for="confirm">Confirm Password</label>
 				<input id="confirm" name="confirm" type="password" autocomplete="new-password" required />
 
-				<div style="margin-top:18px;display:flex;gap:8px">
+				<div class="btn-group">
 					<button class="primary" type="submit">Create account</button>
-					<a class="link" href="/login" style="align-self:center">Sign in</a>
+					<a class="link" href="/login">Already have an account? Sign in</a>
 				</div>
 			</form>
 
-			<div class="footer">By creating an account you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+			<div class="footer">
+				By creating an account you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+			</div>
 		</div>
 	</div>
 
