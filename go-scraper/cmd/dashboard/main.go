@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -1113,11 +1114,28 @@ func importJobsHandler(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	// Parse JSON
-	var jobs []JobImport
-	err = json.NewDecoder(resp.Body).Decode(&jobs)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to parse JSON: %v", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Failed to read response body: %v", err), http.StatusBadRequest)
 		return
+	}
+
+	var jobs []JobImport
+	err = json.Unmarshal(body, &jobs)
+	if err != nil {
+		// Try to parse as a single job or different format
+		var singleJob JobImport
+		if json.Unmarshal(body, &singleJob) == nil {
+			jobs = []JobImport{singleJob}
+		} else {
+			// Log the actual JSON content for debugging
+			truncatedBody := string(body)
+			if len(body) > 500 {
+				truncatedBody = string(body[:500]) + "..."
+			}
+			http.Error(w, fmt.Sprintf("Failed to parse JSON: %v\n\nReceived JSON: %s", err, truncatedBody), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Connect to database
