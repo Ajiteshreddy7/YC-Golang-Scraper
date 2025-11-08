@@ -132,7 +132,7 @@ var loginHTML = `<!doctype html>
 
 				<div class="btn-group">
 					<button class="primary" type="submit">Sign in</button>
-					<a class="link" href="#" onclick="alert('Registration coming soon!')">Create new account</a>
+					<a class="link" href="/register">Create new account</a>
 				</div>
 			</form>
 
@@ -1195,7 +1195,7 @@ func quickSetupHandler(w http.ResponseWriter, r *http.Request) {
 // autoInitialize sets up admin user and sample jobs if database is empty
 func autoInitialize(database *db.DB) {
 	logger.Info("Starting database initialization check...")
-	
+
 	// Check if admin user exists
 	_, _, _, err := database.GetUserByUsername("admin")
 	if err != nil {
@@ -1217,7 +1217,7 @@ func autoInitialize(database *db.DB) {
 		logger.Error("Failed to check existing jobs: %v", err)
 		return
 	}
-	
+
 	if len(jobs) == 0 {
 		logger.Info("No jobs found, adding sample jobs...")
 		// Add sample jobs
@@ -1250,7 +1250,7 @@ func autoInitialize(database *db.DB) {
 		logger.Info("✅ Database already contains %d jobs", len(jobs))
 	}
 	logger.Info("Database initialization complete")
-}// -------------------- MAIN --------------------
+} // -------------------- MAIN --------------------
 
 func main() {
 	// Check for PORT environment variable (required for Render)

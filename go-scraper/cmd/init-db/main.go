@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"os"
 
-	_ "modernc.org/sqlite"
 	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
 	// Create data directory
 	os.MkdirAll("./data", 0755)
-	
+
 	// Connect to SQLite
 	db, err := sql.Open("sqlite", "./data/jobs.db")
 	if err != nil {
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	for _, job := range jobs {
-		_, err = db.Exec(`INSERT OR IGNORE INTO job_applications(title, company, location, type, url) VALUES(?, ?, ?, ?, ?)`, 
+		_, err = db.Exec(`INSERT OR IGNORE INTO job_applications(title, company, location, type, url) VALUES(?, ?, ?, ?, ?)`,
 			job.title, job.company, job.location, job.jobType, job.url)
 		if err != nil {
 			fmt.Printf("Failed to insert job %s: %v\n", job.title, err)

@@ -202,7 +202,7 @@ func main() {
 
 	fmt.Printf("✅ Static site generated successfully!\n")
 	fmt.Printf("📄 Output: %s\n", outputFile)
-	fmt.Printf("📊 Generated page with %d jobs (%d applied, %d not applied)\n", 
+	fmt.Printf("📊 Generated page with %d jobs (%d applied, %d not applied)\n",
 		data.TotalJobs, data.Applied, data.NotApplied)
 	fmt.Printf("\n🚀 To deploy to GitHub Pages:")
 	fmt.Printf("\n   1. Copy the generated file to your repository root")
