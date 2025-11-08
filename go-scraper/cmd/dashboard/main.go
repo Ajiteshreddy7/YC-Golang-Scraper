@@ -501,6 +501,13 @@ func deriveLevels(title string) []string {
 
 // root handler redirects to login or filters
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+	// For debugging: Add a simple health check response if requested
+	if r.URL.Query().Get("health") == "check" {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("OK - YC Job Tracker is running"))
+		return
+	}
+
 	session, _ := store.Get(r, "session")
 	if session.Values["user"] == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -1187,21 +1194,32 @@ func quickSetupHandler(w http.ResponseWriter, r *http.Request) {
 
 // autoInitialize sets up admin user and sample jobs if database is empty
 func autoInitialize(database *db.DB) {
-	logger.Info("Checking database initialization...")
+	logger.Info("Starting database initialization check...")
 	
 	// Check if admin user exists
 	_, _, _, err := database.GetUserByUsername("admin")
 	if err != nil {
+		logger.Info("Admin user not found, creating...")
 		// Create admin user
 		err = database.CreateUser("admin", "password123")
-		if err == nil {
-			logger.Info("Created admin user (admin/password123)")
+		if err != nil {
+			logger.Error("Failed to create admin user: %v", err)
+		} else {
+			logger.Info("✅ Created admin user (admin/password123)")
 		}
+	} else {
+		logger.Info("✅ Admin user already exists")
 	}
 
 	// Check if any jobs exist
 	jobs, err := database.ListJobs(db.JobFilter{}, 1, 1)
-	if err != nil || len(jobs) == 0 {
+	if err != nil {
+		logger.Error("Failed to check existing jobs: %v", err)
+		return
+	}
+	
+	if len(jobs) == 0 {
+		logger.Info("No jobs found, adding sample jobs...")
 		// Add sample jobs
 		sampleJobs := []struct {
 			title, company, location, jobType, url string
@@ -1221,17 +1239,18 @@ func autoInitialize(database *db.DB) {
 		inserted := 0
 		for _, job := range sampleJobs {
 			err = database.InsertJobTyped(job.title, job.company, job.location, job.jobType, job.url)
-			if err == nil {
+			if err != nil {
+				logger.Error("Failed to insert job %s: %v", job.title, err)
+			} else {
 				inserted++
 			}
 		}
-		logger.Info("Auto-initialized database with %d sample jobs", inserted)
+		logger.Info("✅ Auto-initialized database with %d sample jobs", inserted)
 	} else {
-		logger.Info("Database already contains %d jobs", len(jobs))
+		logger.Info("✅ Database already contains %d jobs", len(jobs))
 	}
-}
-
-// -------------------- MAIN --------------------
+	logger.Info("Database initialization complete")
+}// -------------------- MAIN --------------------
 
 func main() {
 	// Check for PORT environment variable (required for Render)
