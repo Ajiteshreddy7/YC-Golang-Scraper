@@ -394,29 +394,38 @@ const resultsHTML = `
 		.download { background:#6c757d; color:#fff; padding:8px 14px; border-radius:6px; text-decoration:none; font-size:0.95em; }
 		.download:hover { background:#5a6268; }
 		.status-applied { opacity: 0.6; }
+		/* Style the mark button when a job is already applied */
+		li.status-applied .btn-mark { background: #28a745; color: #fff; }
 	</style>
 	<script>
-	  function markApplied(jobId, btn) {
-		fetch('/mark-applied', {
-		  method: 'POST',
-		  headers: {'Content-Type': 'application/json'},
-		  body: JSON.stringify({id: jobId})
-		})
-		.then(r => r.json())
-		.then(data => {
-		  if(data.success) {
-			// Updated text to be more professional and use an icon (U+2705 is a white heavy check mark)
-			btn.textContent = '✅ Applied'; 
-			btn.disabled = true;
-			btn.style.background = '#28a745'; // Use a success green color after application is marked
-			btn.style.color = '#fff';
-			btn.parentElement.parentElement.classList.add('status-applied');
-		  } else {
-			alert('Failed to update status');
-		  }
-		})
-		.catch(() => alert('Error updating status'));
-	  }
+		function markApplied(jobId, btn) {
+			// Send a toggle request to mark/unmark as applied. Server responds with { success: bool, status: "Applied"|"Not Applied" }
+			fetch('/mark-applied', {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({id: jobId})
+			})
+			.then(r => r.json())
+			.then(data => {
+				if(data.success) {
+					if (data.status === 'Applied') {
+						btn.textContent = '✅ Applied';
+						btn.style.background = '#28a745';
+						btn.style.color = '#fff';
+						btn.parentElement.parentElement.classList.add('status-applied');
+					} else {
+						// Unapplied state
+						btn.textContent = 'Mark as Applied';
+						btn.style.background = '';
+						btn.style.color = '';
+						btn.parentElement.parentElement.classList.remove('status-applied');
+					}
+				} else {
+					alert('Failed to update status');
+				}
+			})
+			.catch(() => alert('Error updating status'));
+		}
 	</script>
  </head>
  <body>
@@ -461,9 +470,7 @@ const resultsHTML = `
 		   </div>
 		   <div>
 			  <a class="btn" href="{{.URL}}" target="_blank">Open</a>
-			  {{if eq .Status "Not Applied"}}
-			  <button class="btn btn-mark" onclick="markApplied({{.ID}}, this)">Mark as Applied</button>
-			  {{end}}
+			  <button class="btn btn-mark" onclick="markApplied({{.ID}}, this)">{{if eq .Status "Applied"}}✅ Applied{{else}}Mark as Applied{{end}}</button>
 		   </div>
 		</li>
 		{{else}}
@@ -1028,14 +1035,30 @@ func markAppliedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer d.Close()
 
-	_, err = d.Conn.Exec(`UPDATE job_applications SET status = 'Applied' WHERE id = $1`, req.ID)
+	// Read current status
+	var curStatus string
+	row := d.Conn.QueryRow(`SELECT status FROM job_applications WHERE id = $1`, req.ID)
+	if err := row.Scan(&curStatus); err != nil {
+		logger.Error("fetch current status: %v", err)
+		http.Error(w, `{"success":false}`, http.StatusInternalServerError)
+		return
+	}
+
+	// Toggle status
+	newStatus := "Applied"
+	if curStatus == "Applied" {
+		newStatus = "Not Applied"
+	}
+
+	_, err = d.Conn.Exec(`UPDATE job_applications SET status = $1 WHERE id = $2`, newStatus, req.ID)
 	if err != nil {
 		logger.Error("update status: %v", err)
 		http.Error(w, `{"success":false}`, http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"success":true}`))
+	w.Write([]byte(fmt.Sprintf(`{"success":true, "status":"%s"}`, newStatus)))
 }
 
 // initAdminHandler creates admin user if it doesn't exist (for Render deployment)
