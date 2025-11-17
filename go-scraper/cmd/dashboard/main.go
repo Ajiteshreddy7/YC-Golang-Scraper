@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/ajiteshreddy7/yc-go-scraper/internal/db"
@@ -40,6 +41,18 @@ type PageData struct {
 	Applied    int
 	User       string
 }
+
+// importRunning is an atomic flag to prevent overlapping imports
+var importRunning int32
+
+// importStatus holds the details of the last import operation.
+type importStatus struct {
+	Count int32     `json:"count"`
+	Time  time.Time `json:"time"`
+	Error string    `json:"error,omitempty"`
+}
+
+var lastImport atomic.Value // will store importStatus
 
 // -------------------- AUTHENTICATION SETUP --------------------
 
@@ -1167,6 +1180,31 @@ func importJobsHandler(w http.ResponseWriter, r *http.Request) {
 	</body></html>`, imported, len(jobs))))
 }
 
+// importStatusHandler returns JSON with the last import status.
+func importStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	v := lastImport.Load()
+	if v == nil {
+		// no import yet
+		json.NewEncoder(w).Encode(map[string]string{"status": "no imports yet"})
+		return
+	}
+	status, ok := v.(importStatus)
+	if !ok {
+		json.NewEncoder(w).Encode(map[string]string{"status": "unable to read status"})
+		return
+	}
+	// encode time as RFC3339 string inside a map to keep format stable
+	out := map[string]interface{}{
+		"count": status.Count,
+		"time":  status.Time.Format(time.RFC3339),
+	}
+	if status.Error != "" {
+		out["error"] = status.Error
+	}
+	json.NewEncoder(w).Encode(out)
+}
+
 // importJobsFromURL fetches jobs JSON from a public URL and imports into the provided DB.
 // Returns number of jobs imported or an error.
 func importJobsFromURL(jsonURL string, database *db.DB) (int, error) {
@@ -1207,6 +1245,10 @@ func importJobsFromURL(jsonURL string, database *db.DB) (int, error) {
 			imported++
 		}
 	}
+
+	// update last import status
+	status := importStatus{Count: int32(imported), Time: time.Now(), Error: ""}
+	lastImport.Store(status)
 
 	return imported, nil
 }
@@ -1349,6 +1391,37 @@ func main() {
 		}(importURL)
 	}
 
+	// Optional periodic sync: IMPORT_SYNC_INTERVAL (minutes)
+	if syncInterval := os.Getenv("IMPORT_SYNC_INTERVAL"); syncInterval != "" {
+		minInt, err := strconv.Atoi(syncInterval)
+		if err == nil && minInt > 0 {
+			interval := time.Duration(minInt) * time.Minute
+			logger.Info("Periodic import enabled: every %d minutes from %s", minInt, os.Getenv("IMPORT_JOBS_URL"))
+			go func(url string, d *db.DB, t time.Duration) {
+				ticker := time.NewTicker(t)
+				defer ticker.Stop()
+				for range ticker.C {
+					// avoid overlapping imports
+					if !atomic.CompareAndSwapInt32(&importRunning, 0, 1) {
+						logger.Info("Previous import still running, skipping this tick")
+						continue
+					}
+					go func() {
+						defer atomic.StoreInt32(&importRunning, 0)
+						imported, err := importJobsFromURL(url, d)
+						if err != nil {
+							logger.Error("Periodic import failed: %v", err)
+							return
+						}
+						logger.Info("Periodic import complete: %d jobs imported", imported)
+					}()
+				}
+			}(os.Getenv("IMPORT_JOBS_URL"), database, interval)
+		} else if err != nil {
+			logger.Error("Invalid IMPORT_SYNC_INTERVAL value: %v", err)
+		}
+	}
+
 	// All routes are now based on the authenticated logic
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/login", loginHandler)
@@ -1360,6 +1433,8 @@ func main() {
 
 	// Job import route (for Render deployment)
 	http.HandleFunc("/import-jobs", importJobsHandler)
+	// Import status route
+	http.HandleFunc("/import-status", importStatusHandler)
 
 	// Quick setup route (for Render deployment)
 	http.HandleFunc("/quick-setup", quickSetupHandler)
