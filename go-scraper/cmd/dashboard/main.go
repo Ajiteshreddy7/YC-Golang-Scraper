@@ -1167,6 +1167,50 @@ func importJobsHandler(w http.ResponseWriter, r *http.Request) {
 	</body></html>`, imported, len(jobs))))
 }
 
+// importJobsFromURL fetches jobs JSON from a public URL and imports into the provided DB.
+// Returns number of jobs imported or an error.
+func importJobsFromURL(jsonURL string, database *db.DB) (int, error) {
+	if jsonURL == "" {
+		return 0, fmt.Errorf("empty import URL")
+	}
+
+	resp, err := http.Get(jsonURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return 0, fmt.Errorf("bad response status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var jobs []JobImport
+	if err := json.Unmarshal(body, &jobs); err != nil {
+		// try single object
+		var single JobImport
+		if err2 := json.Unmarshal(body, &single); err2 == nil {
+			jobs = []JobImport{single}
+		} else {
+			return 0, fmt.Errorf("failed to parse JSON: %v - received: %s", err, string(body))
+		}
+	}
+
+	imported := 0
+	for _, job := range jobs {
+		if err := database.InsertJobTyped(job.Title, job.Company, job.Location, job.Type, job.URL); err == nil {
+			imported++
+		}
+	}
+
+	return imported, nil
+}
+
 // quickSetupHandler creates sample jobs for testing (for Render deployment)
 func quickSetupHandler(w http.ResponseWriter, r *http.Request) {
 	d, err := db.Connect()
@@ -1291,6 +1335,19 @@ func main() {
 
 	// Auto-initialize for Render deployment
 	autoInitialize(database)
+
+	// Optional: automatic import of jobs from a public JSON URL (set IMPORT_JOBS_URL)
+	if importURL := os.Getenv("IMPORT_JOBS_URL"); importURL != "" {
+		// run in background so server can continue starting
+		go func(url string) {
+			logger.Info("Auto-import: fetching jobs from %s", url)
+			if imported, err := importJobsFromURL(url, database); err != nil {
+				logger.Error("Auto-import failed: %v", err)
+			} else {
+				logger.Info("Auto-import complete: %d jobs imported", imported)
+			}
+		}(importURL)
+	}
 
 	// All routes are now based on the authenticated logic
 	http.HandleFunc("/", rootHandler)

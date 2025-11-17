@@ -232,6 +232,16 @@ The scraper is configured via `config/scraper_config.json`:
 
 Add Y Combinator portfolio companies to automatically scrape their job boards.
 
+### Automatic import on startup (optional)
+
+The dashboard can automatically import jobs from a public JSON file on startup. Set the environment variable `IMPORT_JOBS_URL` to a publicly-accessible raw JSON URL (for example a GitHub raw URL):
+
+```
+IMPORT_JOBS_URL=https://raw.githubusercontent.com/yourname/your-repo/main/jobs_export.json
+```
+
+When set, the dashboard will fetch that URL once during startup and import any jobs found. This is handy for one-time bootstrapping of a fresh deployment.
+
 ## 🐛 Troubleshooting
 
 ### Authentication Issues
