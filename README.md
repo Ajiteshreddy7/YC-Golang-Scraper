@@ -1,7 +1,7 @@
 # YC-Go-JobScraper
 
 ## 🚀 Featured Project: YC-Go-JobScraper
-[![Showcase](https://img.shields.io/badge/Featured%20on-AI%20Demos-blueviolet)]([https://aidemos.com/showcase](https://aidemos.com/showcase/447)) 
+[![Showcase](https://img.shields.io/badge/Featured%20on-AI%20Demos-blueviolet)](https://aidemos.com/showcase/447)
 
 > An intelligent job aggregator with authentication that automatically discovers and tracks early-career opportunities from Y Combinator companies. Built with Go, featuring secure user accounts, job tracking, and deployed on Render + GitHub Pages.
 
