@@ -1,10 +1,9 @@
 # YC-Go-JobScraper
 
+## 🚀 Featured Project: YC-Go-JobScraper
+[![Showcase](https://img.shields.io/badge/Featured%20on-AI%20Demos-blueviolet)](https://aidemos.com/showcase) 
 
-
-# YC Job Scraper
-
-> 🚀 An intelligent job aggregator with authentication that automatically discovers and tracks early-career opportunities from Y Combinator companies. Built with Go, featuring secure user accounts, job tracking, and deployed on Render + GitHub Pages.
+> An intelligent job aggregator with authentication that automatically discovers and tracks early-career opportunities from Y Combinator companies. Built with Go, featuring secure user accounts, job tracking, and deployed on Render + GitHub Pages.
 
 [![Deploy Status](https://github.com/Ajiteshreddy7/YC-Golang-Scraper/workflows/Deploy%20to%20GitHub%20Pages/badge.svg)](https://github.com/Ajiteshreddy7/YC-Golang-Scraper/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go)](https://go.dev/)
